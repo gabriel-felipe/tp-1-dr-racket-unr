@@ -30,7 +30,7 @@ Estructura para representar el estado del programa.
 (define WIDTH 500)
 
 ; Estado inicial
-(define START ???)
+(define START 10)
 
 #|
 Constantes asociadas a la barra
@@ -44,7 +44,7 @@ Constantes asociadas a la barra
 (define BAR-X 20)
 (define BAR-HEIGHT 50)
 (define BAR-WIDTH 20)
-(define BAR (rectangle ??? ??? "solid" "red"))
+(define BAR (rectangle BAR-WIDTH BAR-HEIGHT "solid" "red"))
 
 #|
 Constantes asociadas a la pelota
@@ -52,7 +52,7 @@ Constantes asociadas a la pelota
 - BALL:        Imagen de la pelota.
 |#
 (define BALL-RADIUS 20)
-(define BALL (circle ??? "solid" "blue"))
+(define BALL (circle BALL-RADIUS "solid" "blue"))
 
 ; Fondo
 (define BACKGROUND (empty-scene WIDTH HEIGHT))
@@ -71,7 +71,9 @@ Constantes asociadas a la pelota
 ; Ubica al puntaje (su límite derecho y no su centro) a 10 unidades del margen derecho.
 ; y a 10 unidades del margen superior (su límite superior)
 ; Si el puntaje y la pelota se superponen, el puntaje se debe seguir viendo
-(define (draw s) ???)
+(define (draw s)
+  (place-image (square 30 "solid" "red" )
+               (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND))
 
 ; ball-next: COMPLETAR SIGNATURA
 ; Calcula la posición de la pelota ante un nuevo click del reloj,
@@ -100,7 +102,13 @@ Constantes asociadas a la pelota
 ; add-point: st-> st
 ; Incrementa en 1 el puntaje
 (define (add-point s)
-  ???)
+  (make-st
+   (st-ball-x s)
+   (st-ball-y s)
+   (st-bar-y s)
+   (st-ball-vx s)
+   (st-ball-vy s)
+   (+ (st-points s) 1)))
 
 (check-expect (add-point (make-st 1 1 1 6 6 1000)) (make-st 1 1 1 6 6 1001))
 
@@ -110,7 +118,7 @@ Constantes asociadas a la pelota
   (cond
       [(hit-bar? s)        ???]
       [(hit-right-wall? s) ???]
-      [else                ???]
+      [else                s]
   )
 )
 
@@ -130,8 +138,8 @@ Constantes asociadas a la pelota
 ; Hace rebotar la pelota en la pared superior o inferior.
 (define (bounce-y s)
   (cond
-      [(hit-top-wall? s) ???]
-      [(hit-bot-wall? s) ???]
+      [(hit-top-wall? s) (reflect-ball-x s 1)]
+      [(hit-bot-wall? s) (reflect-ball-x s 1)]
       [else              ???]
   )
 )
