@@ -30,7 +30,7 @@ Estructura para representar el estado del programa.
 (define WIDTH 500)
 
 ; Estado inicial
-(define START 10)
+(define START (make-st 0 (* HEIGHT .5) (* HEIGHT .5) 0.5 3 0))
 
 #|
 Constantes asociadas a la barra
@@ -72,8 +72,8 @@ Constantes asociadas a la pelota
 ; y a 10 unidades del margen superior (su límite superior)
 ; Si el puntaje y la pelota se superponen, el puntaje se debe seguir viendo
 (define (draw s)
-  (place-image (square 30 "solid" "red" )
-               (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND))
+  (place-image BALL
+               (st-ball-x s) (st-ball-y s) BACKGROUND))
 
 ; ball-next: COMPLETAR SIGNATURA
 ; Calcula la posición de la pelota ante un nuevo click del reloj,
@@ -116,43 +116,41 @@ Constantes asociadas a la pelota
 ; Hace rebotar la pelota en la pared derecha o la barra.
 (define (bounce-x s)
   (cond
-      [(hit-bar? s)        ???]
-      [(hit-right-wall? s) ???]
+      [(hit-bar? s)        (reflect-ball-x s 1)]
+      [(hit-right-wall? s) (reflect-ball-x s 1)]
       [else                s]
   )
 )
 
 ; hit-bar? : st -> Boolean
 ; Decide si la pelota colisionó con la barra
-(define (hit-bar? s)
-  ???)
+(define (hit-bar? s) #f)
 (check-expect (hit-bar? (make-st (+ BAR-X (/ BAR-WIDTH 2) BALL-RADIUS) 200 200 -6 6 1)) #f)
 
 ; hit-right-wall? 
 ; Decide si la pelota colisionó con la pared derecha
-(define (hit-right-wall? s)
-  ???)
+(define (hit-right-wall? s) #f)
 (check-expect (hit-right-wall? (make-st 481 200 100 6 6 1)) #t)
 
 ; bounce-y: st -> st
 ; Hace rebotar la pelota en la pared superior o inferior.
 (define (bounce-y s)
   (cond
-      [(hit-top-wall? s) (reflect-ball-x s 1)]
-      [(hit-bot-wall? s) (reflect-ball-x s 1)]
-      [else              ???]
+      [(hit-top-wall? s) (reflect-ball-y s BALL-RADIUS)]
+      [(hit-bot-wall? s) (reflect-ball-y s (* -1 BALL-RADIUS))]
+      [else              s]
   )
 )
 
 ; hit-top-wall? 
 ; Decide si la pelota colisionó con la pared superior
 (define (hit-top-wall? s)
-  ???)
+  (if (< (st-ball-y s) (/ BALL-RADIUS 2)) #t #f))
 
 ; hit-bot-wall? 
 ; Decide si la pelota colisionó con la pared inferior
 (define (hit-bot-wall? s)
-  ???)
+  (if (> (st-ball-y s) (- HEIGHT BALL-RADIUS)) #t #f))
 
 ; reflect-ball-x: st Number -> st
 ; Gira el sentido en x de la pelota y acomoda su posición en x, sumandole n unidades
@@ -185,7 +183,7 @@ Constantes asociadas a la pelota
   (cond
     [(key=? k "down") (move-bar s BAR-VEL)]
     [(key=? k "up") (move-bar s (- BAR-VEL))]
-    [else ???]))
+    [else s]))
 
 (check-expect (handle-key (make-st 1 1 (- HEIGHT (/ BAR-VEL 2)) -1 -1 0) "down")
               (make-st 1 1 (- HEIGHT (/ BAR-HEIGHT 2)) -1 -1 0))
@@ -193,15 +191,20 @@ Constantes asociadas a la pelota
 ; move-bar: st Number -> st
 ; Mueve la barra n unidades, manteniéndola en los márgenes permitidos.
 (define (move-bar s n)
-   ???)
+   (make-st
+   (st-ball-x s)
+   (st-ball-y s)
+   (+ (st-bar-y s) n)
+   (st-ball-vx s)
+   (st-ball-vy s)
+   (st-points s)))
 
 (check-expect (move-bar (make-st 1 1 (- HEIGHT (/ BAR-VEL 2)) -1 -1 0) BAR-VEL)
               (make-st 1 1 (- HEIGHT (/ BAR-HEIGHT 2)) -1 -1 0))
 
 
 ; stop?: COMPLETAR DISEÑO
-(define (stop? s)
-  ???)
+(define (stop? s) #f)
 
 ; Imagen que aparece en caso de perder la partida
 (define (ULOST s)
