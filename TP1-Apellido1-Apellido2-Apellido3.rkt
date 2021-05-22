@@ -72,12 +72,17 @@ Constantes asociadas a la pelota
 ; y a 10 unidades del margen superior (su límite superior)
 ; Si el puntaje y la pelota se superponen, el puntaje se debe seguir viendo
 (define (draw s)
-  (place-images (list (draw-points s) BALL BAR)
+  (let* (
+         [points (draw-points s)]
+         [points-width (image-width points)]
+         [points-height (image-height points)])
+    
+  (place-images (list points BALL BAR)
                 (list
-                   (make-posn (- WIDTH 20) 20)
+                   (make-posn (- WIDTH 20 (/ points-width 2)) (+ 20 (/ points-height 2)))
                    (make-posn (st-ball-x s) (st-ball-y s))
                    (make-posn BAR-X (st-bar-y s)))
-                   BACKGROUND))
+                   BACKGROUND)))
 
 ; ball-next: COMPLETAR SIGNATURA
 ; Calcula la posición de la pelota ante un nuevo click del reloj,
@@ -123,7 +128,7 @@ Constantes asociadas a la pelota
     ([ball-left-x (- (st-ball-x s) BALL-RADIUS)]
      [bar-right-x (+ BAR-X (/ BAR-WIDTH 2))])
     (cond
-      [(hit-bar? s)        (add-point (reflect-ball-x s (- bar-right-x ball-left-x)))]
+      [(hit-bar? s)        (add-point (reflect-ball-x s (- bar-right-x ball-left-x (st-ball-vx s))))]
       [(hit-right-wall? s) (reflect-ball-x s (- WIDTH (+ BALL-RADIUS 1 (st-ball-x s))))]
       [else                s]
       ))
@@ -144,7 +149,7 @@ Constantes asociadas a la pelota
 ; hit-right-wall? 
 ; Decide si la pelota colisionó con la pared derecha
 (define (hit-right-wall? s)
-  (>= (+ (st-ball-x s) BALL-RADIUS) WIDTH))
+  (> (+ (st-ball-x s) BALL-RADIUS) WIDTH))
 
 (check-expect (hit-right-wall? (make-st 481 200 100 6 6 1)) #t)
 
@@ -226,16 +231,21 @@ Constantes asociadas a la pelota
 (define (hit-left-wall? s)
   (< (- (st-ball-x s) BALL-RADIUS ) 0))
 
+(define (is-winner s) (>= (st-points s) 10))
+
 (define (stop? s)
    (or (hit-left-wall? s)
-       (>= (st-points s) 10))
+       (is-winner s))
   )
-; Imagen que aparece en caso de perder la partida
-(define (ULOST s)
-  (place-image (text (string-append "Juego terminado" " puntaje: " (number->string (st-points s))) 36 "indigo") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND))
+
+; Imagen que aparece en el final de la partida
+(define (result s)
+  (let
+    ([result-message (if (is-winner s) "Ganaste," "Perdiste,")])
+    (place-image (text (string-append result-message " puntaje: " (number->string (st-points s))) 36 "indigo") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND)))
 
 (big-bang START
   [to-draw draw]
   [on-tick ball-next]
   [on-key handle-key]
-  [stop-when stop? ULOST])
+  [stop-when stop? result])
