@@ -30,7 +30,7 @@ Estructura para representar el estado del programa.
 (define WIDTH 500)
 
 ; Estado inicial
-(define START (make-st (* WIDTH .5) (* HEIGHT .5) (* HEIGHT .5) 4 4 0))
+(define START (make-st 100 100 (* HEIGHT .5) 6 -6 0))
 
 #|
 Constantes asociadas a la barra
@@ -119,21 +119,24 @@ Constantes asociadas a la pelota
 ; bounce-x: st -> st
 ; Hace rebotar la pelota en la pared derecha o la barra.
 (define (bounce-x s)
-  (cond
-      [(hit-bar? s)        (reflect-ball-x (add-point s) BALL-RADIUS)]
-      [(hit-right-wall? s) (reflect-ball-x s (* -1 BALL-RADIUS))]
+  (let*
+    ([ball-left-x (- (st-ball-x s) BALL-RADIUS)]
+     [bar-right-x (+ BAR-X (/ BAR-WIDTH 2))])
+    (cond
+      [(hit-bar? s)        (add-point (reflect-ball-x s (- bar-right-x ball-left-x)))]
+      [(hit-right-wall? s) (reflect-ball-x s (- WIDTH (+ BALL-RADIUS 1 (st-ball-x s))))]
       [else                s]
-  )
+      ))
 )
 
 ; hit-bar? : st -> Boolean
 ; Decide si la pelota colisionó con la barra
 (define (hit-bar? s)
   (if (and
-       (<= (- (st-ball-x s) (/ BALL-RADIUS 2)) (+ BAR-X BAR-WIDTH))
-       (>= (- (st-ball-x s) (/ BALL-RADIUS 2)) (- BAR-X BAR-WIDTH))
-       (>= (st-ball-y s) (- (st-bar-y s) (/ BAR-HEIGHT 2)))
-       (<= (st-ball-y s) (+ (st-bar-y s) (/ BAR-HEIGHT 2)))
+       (< (- (st-ball-x s) BALL-RADIUS) (+ BAR-X (/ BAR-WIDTH 2)))
+       (> (- (st-ball-x s) BALL-RADIUS) (- BAR-X (/ BAR-WIDTH 2)))
+       (> (st-ball-y s) (- (st-bar-y s) (/ BAR-HEIGHT 2)))
+       (< (st-ball-y s) (+ (st-bar-y s) (/ BAR-HEIGHT 2)))
       ) #t #f))
 
 (check-expect (hit-bar? (make-st (+ BAR-X (/ BAR-WIDTH 2) BALL-RADIUS) 200 200 -6 6 1)) #f)
@@ -141,7 +144,7 @@ Constantes asociadas a la pelota
 ; hit-right-wall? 
 ; Decide si la pelota colisionó con la pared derecha
 (define (hit-right-wall? s)
-  (>= (+ (st-ball-x s) (/ BALL-RADIUS 2)) WIDTH))
+  (>= (+ (st-ball-x s) BALL-RADIUS) WIDTH))
 
 (check-expect (hit-right-wall? (make-st 481 200 100 6 6 1)) #t)
 
@@ -207,17 +210,21 @@ Constantes asociadas a la pelota
    (make-st
    (st-ball-x s)
    (st-ball-y s)
-   (+ (st-bar-y s) n)
+   (cond
+     [(< (+ (st-bar-y s) n) (/ BAR-HEIGHT 2)) (/ BAR-HEIGHT 2)]
+     [(> (+ (st-bar-y s) n) (- HEIGHT (/ BAR-HEIGHT 2))) (- HEIGHT (/ BAR-HEIGHT 2))]
+     [else (+ (st-bar-y s) n)]
+   )
    (st-ball-vx s)
    (st-ball-vy s)
    (st-points s)))
 
-(check-expect (move-bar (make-st 1 1 (- HEIGHT (/ BAR-VEL 2)) -1 -1 0) BAR-VEL)
+(check-expect (move-bar (make-st 1 1 (- HEIGHT (/ BAR-HEIGHT 2)) -1 -1 0) BAR-VEL)
               (make-st 1 1 (- HEIGHT (/ BAR-HEIGHT 2)) -1 -1 0))
 
 
 (define (hit-left-wall? s)
-  (< (- (st-ball-x s) (/ BALL-RADIUS 2)) 0))
+  (< (- (st-ball-x s) BALL-RADIUS ) 0))
 
 (define (stop? s)
    (or (hit-left-wall? s)
@@ -225,7 +232,7 @@ Constantes asociadas a la pelota
   )
 ; Imagen que aparece en caso de perder la partida
 (define (ULOST s)
-  (place-image (text "Juego terminado" 36 "indigo") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND))
+  (place-image (text (string-append "Juego terminado" " puntaje: " (number->string (st-points s))) 36 "indigo") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND))
 
 (big-bang START
   [to-draw draw]
