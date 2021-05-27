@@ -1,12 +1,12 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-advanced-reader.ss" "lang")((modname tp1) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #t #t none #f ((lib "image.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp")) #f)))
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname TP1-Apellido1-Apellido2-Apellido3) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #t #t none #f ((lib "image.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp")) #f)))
 #|
 Trabajo Práctico 1: Programas interactivos con estructuras
 Integrantes:
-- [Apellido, Nombre].
-- [Apellido, Nombre].
 - [Albornoz, Martín].
+- [Chiminelli, Gabriel].
+- [German, Eichemberger].
 |#
 
 
@@ -100,6 +100,12 @@ Constantes asociadas a la pelota
 ; Caso cuando la pelota choca con la barra (+ BAR-X (/ BAR-WIDTH 2) BALL-RADIUS) = 50
 (check-expect (ball-next (make-st 50 200 200 -6 6 1)) (make-st 56 206 200 6 6 2))
 
+; Caso cuando la pelota choca con la parede superior
+(check-expect (ball-next (make-st 50 24  200 6 -6 1)) (make-st 56 22 200 6 6 1))
+
+; Caso cuando la pelota choca con la parede inferior
+(check-expect (ball-next (make-st 50 378  200 6 6 1)) (make-st 56 376 200 6 -6 1))
+
 ; step devuelve un estado posterior basado en el estado actual.
 ; step: st -> st
 ; Mueve la pelota según su velocidad actual, sin importar los límites de la escena.
@@ -134,11 +140,10 @@ Constantes asociadas a la pelota
     ([ball-left-x (- (st-ball-x s) BALL-RADIUS)]
      [bar-right-x (+ BAR-X (/ BAR-WIDTH 2))])
     (cond
-      [(hit-bar? s)        (add-point (reflect-ball-x s (- bar-right-x ball-left-x (st-ball-vx s))))]
-      [(hit-right-wall? s) (reflect-ball-x s (- WIDTH (+ BALL-RADIUS 1 (st-ball-x s))))]
+      [(hit-bar? s)        (add-point (reflect-ball-x s (* 2 (- bar-right-x ball-left-x))))]
+      [(hit-right-wall? s) (reflect-ball-x s (* 2 (- WIDTH (+ BALL-RADIUS (st-ball-x s)))))]
       [else                s]
-      ))
-)
+      )))
 
 ; hit-bar decide si la pelota colisionó con la barra.
 ; hit-bar? : st -> Boolean
@@ -174,8 +179,8 @@ Constantes asociadas a la pelota
 ; cambia la dirección de la velocidad en y de la pelota.
 (define (bounce-y s)
   (cond
-      [(hit-top-wall? s) (reflect-ball-y s BALL-RADIUS)]
-      [(hit-bot-wall? s) (reflect-ball-y s (* -1 BALL-RADIUS))]
+      [(hit-top-wall? s) (reflect-ball-y s (* (- BALL-RADIUS (st-ball-y s)) 2))]
+      [(hit-bot-wall? s) (reflect-ball-y s (* (- HEIGHT (st-ball-y s) BALL-RADIUS) 2))]
       [else              s]
   )
 )
@@ -185,15 +190,19 @@ Constantes asociadas a la pelota
 ; Si la posición en y de la pelota menos su radio es menor o igual a 0,
 ; devuelve #true, si no, devuelve #false
 (define (hit-top-wall? s)
-  (if (<= (st-ball-y s) BALL-RADIUS) #t #f))
+  (if (< (st-ball-y s) BALL-RADIUS) #t #f))
 
+(check-expect (hit-top-wall? (make-st 100 20 100 6 6 1)) #f)
+(check-expect (hit-top-wall? (make-st 100 19 100 6 6 1)) #t)
 ; Determina si la pelota colisionó con la pared inferior
 ; hit-bot-wall?: st -> Boolean 
 ; Si la posición en y de la pelota más su radio es mayor o igual que el
 ; alto de pantalla, devuelve #true, si no, devuelve #false
 (define (hit-bot-wall? s)
-  (if (>= (st-ball-y s) (- HEIGHT BALL-RADIUS)) #t #f))
+  (if (> (st-ball-y s) (- HEIGHT BALL-RADIUS)) #t #f))
 
+(check-expect (hit-bot-wall? (make-st 100 380 100 6 6 1)) #f)
+(check-expect (hit-bot-wall? (make-st 100 381 100 6 6 1)) #t)
 ; Cambia el sentido de la velocidad en x
 ; reflect-ball-x: st Number -> st
 ; Gira el sentido en x de la pelota y acomoda su posición en x, sumandole n unidades
@@ -265,30 +274,37 @@ Constantes asociadas a la pelota
 (define (hit-left-wall? s)
   (< (- (st-ball-x s) BALL-RADIUS ) 0))
 
+(check-expect (hit-left-wall? (make-st 20 300 100 6 6 1)) #f)
+(check-expect (hit-left-wall? (make-st 19 300 100 6 6 1)) #t)
+
 ; Determina si se cumplen los requisitos para ganar
 ; is-winner?: st -> Boolean
 ; Si el puntaje acumulado es mayor o igual a 10 puntos, devuelve #true, si no, devuelve #false
-(define (is-winner s) (>= (st-points s) 10))
-
+(define (won? s) (>= (st-points s) 10))
+(check-expect (won? (make-st 50 300 100 6 6 10)) #t)
+(check-expect (won? (make-st 50 300 100 6 6 9)) #f)
 ; Determina si el programa debe detenerse
 ; stop?: st -> Boolean
 ; Si hit-left-wall? o is-winner devuelven #true, stop? devolverá #true, si no, devuelve #false
 (define (stop? s)
    (or (hit-left-wall? s)
-       (is-winner s))
+       (won? s))
   )
 
+(check-expect (stop? (make-st 50 300 100 6 6 10)) #t)
+(check-expect (stop? (make-st 19 300 100 6 6 5)) #t)
+(check-expect (stop? (make-st 50 300 100 6 6 5)) #f)
 
 ; Imagen que aparece en el final de la partida.
 ; result: st -> Image
 ; Devuelve una imagen informando si se Ganó o Perdió el juego, junto con el puntaje obtenido.
 (define (result s)
   (let
-    ([result-message (if (is-winner s) "Ganaste," "Perdiste,")])
+    ([result-message (if (won? s) "Ganaste," "Perdiste,")])
     (place-image (text (string-append result-message " puntaje: " (number->string (st-points s))) 36 "indigo") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND)))
 
 (big-bang START
-  [to-draw draw]
-  [on-tick ball-next]
-  [on-key handle-key]
-  [stop-when stop? result])
+ [to-draw draw]
+ [on-tick ball-next]
+ [on-key handle-key]
+ [stop-when stop? result])
